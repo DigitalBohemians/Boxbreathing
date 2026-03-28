@@ -64,10 +64,10 @@
     margin-bottom: 0.8rem;
   }
   .header h1 {
-    font-family: 'Cormorant Garamond', serif;
-    font-weight: 300;
+    font-family: 'Jost', sans-serif;
+    font-weight: 200;
     font-size: clamp(1.6rem, 4vw, 2.2rem);
-    letter-spacing: 0.1em;
+    letter-spacing: 0.15em;
     color: rgba(255,255,255,0.88);
   }
   .header .subtitle {
@@ -133,12 +133,13 @@
     pointer-events: none;
   }
   .phase-name {
-    font-family: 'Cormorant Garamond', serif;
-    font-weight: 300;
-    font-size: 1.4rem;
-    font-style: italic;
+    font-family: 'Jost', sans-serif;
+    font-weight: 200;
+    font-size: 1.2rem;
+    font-style: normal;
     color: rgba(180,210,255,0.85);
-    letter-spacing: 0.08em;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
     display: block;
     margin-bottom: 6px;
     min-height: 1.4em;
@@ -238,15 +239,15 @@
 
   /* Affirmation */
   .affirmation {
-    font-family: 'Cormorant Garamond', serif;
-    font-weight: 300;
-    font-style: italic;
-    font-size: clamp(0.95rem, 2.5vw, 1.1rem);
+    font-family: 'Jost', sans-serif;
+    font-weight: 200;
+    font-style: normal;
+    font-size: clamp(0.85rem, 2.5vw, 1rem);
     color: rgba(255,255,255,0.5);
     text-align: center;
     max-width: 300px;
     line-height: 1.7;
-    letter-spacing: 0.03em;
+    letter-spacing: 0.06em;
     transition: opacity 1s ease;
     min-height: 2em;
   }
@@ -258,7 +259,35 @@
     .countdown { font-size: 2.4rem; }
   }
 
-  /* Completion overlay */
+  /* Language toggle — fixed oben rechts */
+  .btn-lang {
+    position: fixed;
+    top: 1.2rem;
+    right: 1.2rem;
+    z-index: 50;
+    background: rgba(180,210,255,0.08);
+    border: 0.5px solid rgba(180,210,255,0.25);
+    color: rgba(255,255,255,0.8);
+    font-family: 'Jost', sans-serif;
+    font-weight: 300;
+    font-size: 13px;
+    letter-spacing: 0.12em;
+    padding: 9px 18px;
+    cursor: pointer;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s;
+  }
+  .btn-lang:hover {
+    background: rgba(180,210,255,0.16);
+    border-color: rgba(180,210,255,0.5);
+  }
+  .flag {
+    font-size: 18px;
+    line-height: 1;
+  }
   .completion {
     display: none;
     position: fixed;
@@ -299,10 +328,10 @@
     50% { opacity: 1; transform: scale(1.15); }
   }
   .completion-title {
-    font-family: 'Cormorant Garamond', serif;
-    font-weight: 300;
+    font-family: 'Jost', sans-serif;
+    font-weight: 200;
     font-size: clamp(2.5rem, 8vw, 3.5rem);
-    letter-spacing: 0.08em;
+    letter-spacing: 0.15em;
     color: rgba(255,255,255,0.92);
     margin: 0;
   }
@@ -321,12 +350,14 @@
 </head>
 <body>
 
+<button class="btn-lang" id="btn-lang"><span class="flag">🇬🇧</span> EN</button>
+
 <div class="app">
 
   <div class="header">
     <div class="brand">Digital Bohemians</div>
     <h1>Box Breathing</h1>
-    <div class="subtitle">Atemmeditation</div>
+    <div class="subtitle" id="subtitle">Atemmeditation</div>
   </div>
 
   <div class="circle-area">
@@ -360,29 +391,67 @@
   <canvas id="particles-canvas"></canvas>
   <div class="completion-content">
     <div class="completion-icon">✦</div>
-    <h2 class="completion-title">Geschafft</h2>
-    <p class="completion-sub">Du hast 3 Minuten für dich genommen.</p>
+    <h2 class="completion-title" id="completion-title">Geschafft</h2>
+    <p class="completion-sub" id="completion-sub">Du hast 3 Minuten für dich genommen.</p>
     <button class="btn-main btn-restart" id="btn-restart">Nochmal beginnen</button>
   </div>
 </div>
 
-<script>
-const PHASES = [
-  { name: 'Einatmen',  duration: 4, color: 'rgba(180,210,255,0.95)' },
-  { name: 'Halten',    duration: 4, color: 'rgba(200,220,255,0.7)'  },
-  { name: 'Ausatmen',  duration: 4, color: 'rgba(150,190,255,0.8)'  },
-  { name: 'Halten',    duration: 4, color: 'rgba(200,220,255,0.7)'  },
-];
+<audio id="bg-music" src="DigitalWave.mp3" loop preload="auto"></audio>
 
-const AFFIRMATIONS = [
-  'Ich bin genug — genau so wie ich bin.',
-  'Ich vertraue dem Rhythmus meines Atems.',
-  'Jeder Atemzug bringt mich tiefer in meine Mitte.',
-  'Ich bin ruhig, klar und präsent.',
-  'Ich lasse los, was mir nicht dient.',
-  'Ich bin verbunden — mit mir, mit allem.',
-  'In der Stille finde ich meine Stärke.',
-  'Ich gebe mir selbst die Liebe, die ich brauche.',
+<script>
+const LANG = {
+  de: {
+    phases: ['Einatmen', 'Halten', 'Ausatmen', 'Halten'],
+    subtitle: 'Atemmeditation',
+    start: 'Beginnen',
+    pause: 'Pausieren',
+    resume: 'Fortfahren',
+    restart: 'Nochmal beginnen',
+    completion: 'Geschafft',
+    completionSub: 'Du hast 3 Minuten für dich genommen.',
+    affirmation: 'Atme tief ein — du bist genau richtig hier.',
+    affirmations: [
+      'Ich bin genug — genau so wie ich bin.',
+      'Ich vertraue dem Rhythmus meines Atems.',
+      'Jeder Atemzug bringt mich tiefer in meine Mitte.',
+      'Ich bin ruhig, klar und präsent.',
+      'Ich lasse los, was mir nicht dient.',
+      'Ich bin verbunden — mit mir, mit allem.',
+      'In der Stille finde ich meine Stärke.',
+      'Ich gebe mir selbst die Liebe, die ich brauche.',
+    ],
+  },
+  en: {
+    phases: ['Inhale', 'Hold', 'Exhale', 'Hold'],
+    subtitle: 'Breathing Meditation',
+    start: 'Begin',
+    pause: 'Pause',
+    resume: 'Resume',
+    restart: 'Start again',
+    completion: 'Well done',
+    completionSub: 'You took 3 minutes just for yourself.',
+    affirmation: 'Breathe in — you are exactly where you need to be.',
+    affirmations: [
+      'I am enough — exactly as I am.',
+      'I trust the rhythm of my breath.',
+      'Every breath brings me deeper into my centre.',
+      'I am calm, clear and present.',
+      'I let go of what no longer serves me.',
+      'I am connected — to myself, to everything.',
+      'In stillness I find my strength.',
+      'I give myself the love I deserve.',
+    ],
+  },
+};
+
+let lang = 'de';
+
+const PHASES = [
+  { name: LANG.de.phases[0], duration: 4, color: 'rgba(180,210,255,0.95)' },
+  { name: LANG.de.phases[1], duration: 4, color: 'rgba(200,220,255,0.7)'  },
+  { name: LANG.de.phases[2], duration: 4, color: 'rgba(150,190,255,0.8)'  },
+  { name: LANG.de.phases[3], duration: 4, color: 'rgba(200,220,255,0.7)'  },
 ];
 
 const TOTAL_SECONDS = 3 * 60;
@@ -405,6 +474,40 @@ const countdown    = document.getElementById('countdown');
 const btnToggle    = document.getElementById('btn-toggle');
 const affirmationEl = document.getElementById('affirmation');
 const timerDisplay  = document.getElementById('timer-display');
+
+const btnLang       = document.getElementById('btn-lang');
+const subtitleEl    = document.getElementById('subtitle');
+const completionTitleEl = document.getElementById('completion-title');
+const completionSubEl   = document.getElementById('completion-sub');
+const btnRestart2   = document.getElementById('btn-restart');
+
+function switchLang() {
+  lang = lang === 'de' ? 'en' : 'de';
+  const t = LANG[lang];
+  btnLang.innerHTML = lang === 'de'
+    ? '<span class="flag">🇬🇧</span> EN'
+    : '<span class="flag">🇩🇪</span> DE';
+  subtitleEl.textContent = t.subtitle;
+  affirmationEl.textContent = t.affirmation;
+  PHASES[0].name = t.phases[0];
+  PHASES[1].name = t.phases[1];
+  PHASES[2].name = t.phases[2];
+  PHASES[3].name = t.phases[3];
+  if (running) phaseName.textContent = PHASES[phaseIndex].name;
+  if (!running && totalTick === 0) {
+    btnToggle.textContent = t.start;
+    phaseName.textContent = '·';
+  } else if (!running) {
+    btnToggle.textContent = t.resume;
+  } else {
+    btnToggle.textContent = t.pause;
+  }
+  if (completionTitleEl) completionTitleEl.textContent = t.completion;
+  if (completionSubEl)   completionSubEl.textContent   = t.completionSub;
+  if (btnRestart2)       btnRestart2.textContent        = t.restart;
+}
+
+btnLang.addEventListener('click', switchLang);
 
 function formatTime(s) {
   const m = Math.floor(s / 60);
@@ -456,6 +559,8 @@ function tick_fn() {
     if (timerSeconds === 0) {
       clearInterval(interval);
       running = false;
+      bgMusic.pause();
+      bgMusic.currentTime = 0;
       showCompletion();
       return;
     }
@@ -470,10 +575,10 @@ function tick_fn() {
     if (phaseIndex === 0) {
       cycleCount++;
       if (cycleCount % 2 === 0) {
-        affirmIndex = (affirmIndex + 1) % AFFIRMATIONS.length;
+        affirmIndex = (affirmIndex + 1) % LANG[lang].affirmations.length;
         affirmationEl.style.opacity = '0';
         setTimeout(() => {
-          affirmationEl.textContent = AFFIRMATIONS[affirmIndex];
+          affirmationEl.textContent = LANG[lang].affirmations[affirmIndex];
           affirmationEl.style.opacity = '1';
         }, 600);
       }
@@ -481,6 +586,8 @@ function tick_fn() {
     updatePhaseUI(phaseIndex);
   }
 }
+
+const bgMusic = document.getElementById('bg-music');
 
 function start() {
   running = true;
@@ -491,23 +598,27 @@ function start() {
   affirmIndex = 0;
   timerSeconds = TOTAL_SECONDS;
   timerDisplay.textContent = formatTime(TOTAL_SECONDS);
-  btnToggle.textContent = 'Pausieren';
+  btnToggle.textContent = LANG[lang].pause;
   updatePhaseUI(0);
   const initCirc = (2 * Math.PI * 100).toFixed(1);
   ringProgress.setAttribute('stroke-dasharray', initCirc);
   ringProgress.setAttribute('stroke-dashoffset', initCirc);
+  bgMusic.currentTime = 0;
+  bgMusic.play().catch(() => {});
   interval = setInterval(tick_fn, 100);
 }
 
 function pause() {
   running = false;
   clearInterval(interval);
-  btnToggle.textContent = 'Fortfahren';
+  btnToggle.textContent = LANG[lang].resume;
+  bgMusic.pause();
 }
 
 function resume() {
   running = true;
-  btnToggle.textContent = 'Pausieren';
+  btnToggle.textContent = LANG[lang].pause;
+  bgMusic.play().catch(() => {});
   interval = setInterval(tick_fn, 100);
 }
 
