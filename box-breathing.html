@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Box Breathing · Digital Bohemians</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=Jost:wght@200;300;400&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #060e20;
+    --surface: rgba(255,255,255,0.06);
+    --border: rgba(255,255,255,0.15);
+    --text: rgba(255,255,255,0.92);
+    --text-muted: rgba(255,255,255,0.4);
+    --accent: rgba(180,210,255,0.95);
+    --glow: rgba(100,160,255,0.2);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: radial-gradient(ellipse 80% 80% at 50% 40%, #1a2a4a 0%, #0d1a35 50%, #060e20 100%);
+    color: var(--text);
+    font-family: 'Jost', sans-serif;
+    font-weight: 200;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  /* Soft center glow blau */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse 55% 55% at 50% 45%, rgba(100,150,255,0.1) 0%, transparent 65%);
+    pointer-events: none;
+  }
+
+  .app {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3rem;
+    padding: 2rem;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Header */
+  .header {
+    text-align: center;
+  }
+  .header .brand {
+    font-family: 'Jost', sans-serif;
+    font-weight: 200;
+    font-size: 10px;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 0.8rem;
+  }
+  .header h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    font-size: clamp(1.6rem, 4vw, 2.2rem);
+    letter-spacing: 0.1em;
+    color: rgba(255,255,255,0.88);
+  }
+  .header .subtitle {
+    font-size: 13px;
+    font-weight: 200;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-top: 0.5rem;
+  }
+
+  .timer-display {
+    font-family: 'Jost', sans-serif;
+    font-weight: 100;
+    font-size: 2.2rem;
+    letter-spacing: 0.15em;
+    color: rgba(180,210,255,0.6);
+  }
+
+  /* Circle breathing */
+  .circle-area {
+    position: relative;
+    width: 260px;
+    height: 260px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .circle-svg {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+  }
+
+  /* Outer glow ring */
+  #ring-track {
+    stroke: rgba(255,255,255,0.1);
+    fill: none;
+  }
+  #ring-progress {
+    fill: none;
+    stroke: rgba(180,210,255,0.9);
+    stroke-linecap: round;
+    transform-origin: center;
+    transform: rotate(-90deg);
+    transition: stroke-dashoffset 0.1s linear;
+    filter: drop-shadow(0 0 8px rgba(100,160,255,0.6));
+  }
+
+  /* Pulsing inner circle */
+  #inner-circle {
+    fill: rgba(255,255,255,0.04);
+    stroke: rgba(180,210,255,0.2);
+    transition: r 0.05s linear;
+    filter: drop-shadow(0 0 28px rgba(80,130,255,0.25));
+  }
+
+  .center-text {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    pointer-events: none;
+  }
+  .phase-name {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    font-size: 1.4rem;
+    font-style: italic;
+    color: rgba(180,210,255,0.85);
+    letter-spacing: 0.08em;
+    display: block;
+    margin-bottom: 6px;
+    min-height: 1.4em;
+    transition: opacity 0.4s;
+  }
+  .countdown {
+    font-family: 'Jost', sans-serif;
+    font-weight: 100;
+    font-size: 4rem;
+    color: rgba(255,255,255,0.9);
+    line-height: 1;
+    letter-spacing: 0.05em;
+  }
+
+  /* Phase indicators */
+  .phases {
+    display: flex;
+    gap: 2rem;
+    align-items: flex-end;
+  }
+  .phase-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    opacity: 0.3;
+    transition: opacity 0.4s;
+  }
+  .phase-item.active {
+    opacity: 1;
+  }
+  .phase-item .p-label {
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.5);
+  }
+  .phase-item.active .p-label {
+    color: rgba(255,255,255,0.95);
+  }
+  .phase-bar {
+    width: 1px;
+    background: rgba(255,255,255,0.2);
+    transition: height 0.4s ease, background 0.4s;
+  }
+  .phase-item:nth-child(1) .phase-bar { height: 20px; }
+  .phase-item:nth-child(2) .phase-bar { height: 32px; }
+  .phase-item:nth-child(3) .phase-bar { height: 24px; }
+  .phase-item.active .phase-bar {
+    background: rgba(180,210,255,0.8);
+    box-shadow: 0 0 6px rgba(100,160,255,0.4);
+  }
+  .phase-dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    transition: background 0.4s;
+  }
+  .phase-item.active .phase-dot {
+    background: rgba(180,210,255,0.9);
+    box-shadow: 0 0 8px rgba(100,160,255,0.5);
+  }
+
+  /* Controls */
+  .controls {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+  }
+  .btn-main {
+    background: rgba(180,210,255,0.08);
+    border: 0.5px solid rgba(180,210,255,0.3);
+    color: rgba(180,210,255,0.9);
+    font-family: 'Jost', sans-serif;
+    font-weight: 200;
+    font-size: 12px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    padding: 16px 52px;
+    cursor: pointer;
+    border-radius: 0;
+    transition: all 0.3s;
+  }
+  .btn-main:hover {
+    background: rgba(180,210,255,0.14);
+    border-color: rgba(180,210,255,0.6);
+  }
+
+  .cycle-count {
+    font-size: 10px;
+    font-weight: 200;
+    letter-spacing: 0.2em;
+    color: var(--text-muted);
+  }
+
+  /* Affirmation */
+  .affirmation {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    font-style: italic;
+    font-size: clamp(0.95rem, 2.5vw, 1.1rem);
+    color: rgba(255,255,255,0.5);
+    text-align: center;
+    max-width: 300px;
+    line-height: 1.7;
+    letter-spacing: 0.03em;
+    transition: opacity 1s ease;
+    min-height: 2em;
+  }
+
+
+
+  @media (max-width: 400px) {
+    .circle-area { width: 220px; height: 220px; }
+    .countdown { font-size: 2.4rem; }
+  }
+
+  /* Completion overlay */
+  .completion {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse 80% 80% at 50% 40%, #1a2a4a 0%, #0d1a35 50%, #060e20 100%);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+  }
+  .completion.show {
+    display: flex;
+  }
+  #particles-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+  .completion-content {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.2rem;
+    text-align: center;
+    padding: 2rem;
+  }
+  .completion-icon {
+    font-size: 2.5rem;
+    color: rgba(180,210,255,0.6);
+    animation: pulse-icon 2s ease-in-out infinite;
+  }
+  @keyframes pulse-icon {
+    0%, 100% { opacity: 0.6; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.15); }
+  }
+  .completion-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    font-size: clamp(2.5rem, 8vw, 3.5rem);
+    letter-spacing: 0.08em;
+    color: rgba(255,255,255,0.92);
+    margin: 0;
+  }
+  .completion-sub {
+    font-family: 'Jost', sans-serif;
+    font-weight: 200;
+    font-size: 13px;
+    letter-spacing: 0.18em;
+    color: rgba(180,210,255,0.55);
+    text-transform: uppercase;
+  }
+  .btn-restart {
+    margin-top: 1rem;
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <div class="header">
+    <div class="brand">Digital Bohemians</div>
+    <h1>Box Breathing</h1>
+    <div class="subtitle">Atemmeditation</div>
+  </div>
+
+  <div class="circle-area">
+    <svg class="circle-svg" viewBox="0 0 260 260">
+      <circle id="ring-track" cx="130" cy="130" r="118" stroke-width="0.5"/>
+      <circle id="ring-progress" cx="130" cy="130" r="118"
+        stroke-width="1.5"
+        stroke-dasharray="741.4"
+        stroke-dashoffset="741.4"/>
+      <circle id="inner-circle" cx="130" cy="130" r="75" stroke-width="0.5"/>
+    </svg>
+
+    <div class="center-text">
+      <span class="phase-name" id="phase-name">·</span>
+      <span class="countdown" id="countdown">—</span>
+    </div>
+  </div>
+
+  <div class="timer-display" id="timer-display">3:00</div>
+
+  <div class="controls">
+    <button class="btn-main" id="btn-toggle">Beginnen</button>
+  </div>
+
+  <div class="affirmation" id="affirmation">Atme tief ein — du bist genau richtig hier.</div>
+
+</div>
+
+<!-- Completion overlay -->
+<div class="completion" id="completion">
+  <canvas id="particles-canvas"></canvas>
+  <div class="completion-content">
+    <div class="completion-icon">✦</div>
+    <h2 class="completion-title">Geschafft</h2>
+    <p class="completion-sub">Du hast 3 Minuten für dich genommen.</p>
+    <button class="btn-main btn-restart" id="btn-restart">Nochmal beginnen</button>
+  </div>
+</div>
+
+<script>
+const PHASES = [
+  { name: 'Einatmen',  duration: 4, color: 'rgba(180,210,255,0.95)' },
+  { name: 'Halten',    duration: 4, color: 'rgba(200,220,255,0.7)'  },
+  { name: 'Ausatmen',  duration: 4, color: 'rgba(150,190,255,0.8)'  },
+  { name: 'Halten',    duration: 4, color: 'rgba(200,220,255,0.7)'  },
+];
+
+const AFFIRMATIONS = [
+  'Ich bin genug — genau so wie ich bin.',
+  'Ich vertraue dem Rhythmus meines Atems.',
+  'Jeder Atemzug bringt mich tiefer in meine Mitte.',
+  'Ich bin ruhig, klar und präsent.',
+  'Ich lasse los, was mir nicht dient.',
+  'Ich bin verbunden — mit mir, mit allem.',
+  'In der Stille finde ich meine Stärke.',
+  'Ich gebe mir selbst die Liebe, die ich brauche.',
+];
+
+const TOTAL_SECONDS = 3 * 60;
+const TOTAL_DURATION = PHASES.reduce((a, p) => a + p.duration, 0);
+
+let running = false;
+let phaseIndex = 0;
+let tick = 0;
+let totalTick = 0;
+let cycleCount = 0;
+let affirmIndex = 0;
+let timerSeconds = TOTAL_SECONDS;
+let interval = null;
+
+const ringProgress = document.getElementById('ring-progress');
+const ringTrack    = document.getElementById('ring-track');
+const innerCircle  = document.getElementById('inner-circle');
+const phaseName    = document.getElementById('phase-name');
+const countdown    = document.getElementById('countdown');
+const btnToggle    = document.getElementById('btn-toggle');
+const affirmationEl = document.getElementById('affirmation');
+const timerDisplay  = document.getElementById('timer-display');
+
+function formatTime(s) {
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return m + ':' + String(sec).padStart(2, '0');
+}
+
+function updatePhaseUI(idx) {
+  phaseName.textContent = PHASES[idx].name;
+  ringProgress.style.stroke = PHASES[idx].color;
+}
+
+function tick_fn() {
+  const phase = PHASES[phaseIndex];
+  const dur = phase.duration;
+  const progress = tick / (dur * 10);
+
+  // Outer ring radius: 100 klein ↔ 118 groß
+  let rOuter;
+  if      (phaseIndex === 0) rOuter = 100 + 18 * progress;
+  else if (phaseIndex === 1) rOuter = 118;
+  else if (phaseIndex === 2) rOuter = 118 - 18 * progress;
+  else                       rOuter = 100;
+
+  const circ = 2 * Math.PI * rOuter;
+  ringTrack.setAttribute('r', rOuter.toFixed(1));
+  ringProgress.setAttribute('r', rOuter.toFixed(1));
+  ringProgress.setAttribute('stroke-dasharray', circ.toFixed(1));
+
+  // Progress arc
+  const cycleProgress = (phaseIndex * 4 + tick / 10) / TOTAL_DURATION;
+  ringProgress.style.strokeDashoffset = (circ * (1 - cycleProgress)).toFixed(1);
+
+  // Inner circle: 75 klein ↔ 108 groß
+  let r;
+  if      (phaseIndex === 0) r = 75 + 33 * progress;
+  else if (phaseIndex === 1) r = 108;
+  else if (phaseIndex === 2) r = 108 - 33 * progress;
+  else                       r = 75;
+  innerCircle.setAttribute('r', r.toFixed(1));
+
+  // Phase countdown
+  countdown.textContent = Math.ceil(dur - tick / 10);
+
+  // Gesamttimer jede Sekunde
+  if (tick % 10 === 0) {
+    timerSeconds = Math.max(0, TOTAL_SECONDS - Math.floor(totalTick / 10));
+    timerDisplay.textContent = formatTime(timerSeconds);
+    if (timerSeconds === 0) {
+      clearInterval(interval);
+      running = false;
+      showCompletion();
+      return;
+    }
+  }
+
+  tick++;
+  totalTick++;
+
+  if (tick >= dur * 10) {
+    tick = 0;
+    phaseIndex = (phaseIndex + 1) % PHASES.length;
+    if (phaseIndex === 0) {
+      cycleCount++;
+      if (cycleCount % 2 === 0) {
+        affirmIndex = (affirmIndex + 1) % AFFIRMATIONS.length;
+        affirmationEl.style.opacity = '0';
+        setTimeout(() => {
+          affirmationEl.textContent = AFFIRMATIONS[affirmIndex];
+          affirmationEl.style.opacity = '1';
+        }, 600);
+      }
+    }
+    updatePhaseUI(phaseIndex);
+  }
+}
+
+function start() {
+  running = true;
+  phaseIndex = 0;
+  tick = 0;
+  totalTick = 0;
+  cycleCount = 0;
+  affirmIndex = 0;
+  timerSeconds = TOTAL_SECONDS;
+  timerDisplay.textContent = formatTime(TOTAL_SECONDS);
+  btnToggle.textContent = 'Pausieren';
+  updatePhaseUI(0);
+  const initCirc = (2 * Math.PI * 100).toFixed(1);
+  ringProgress.setAttribute('stroke-dasharray', initCirc);
+  ringProgress.setAttribute('stroke-dashoffset', initCirc);
+  interval = setInterval(tick_fn, 100);
+}
+
+function pause() {
+  running = false;
+  clearInterval(interval);
+  btnToggle.textContent = 'Fortfahren';
+}
+
+function resume() {
+  running = true;
+  btnToggle.textContent = 'Pausieren';
+  interval = setInterval(tick_fn, 100);
+}
+
+const completionEl  = document.getElementById('completion');
+const btnRestart    = document.getElementById('btn-restart');
+const canvas        = document.getElementById('particles-canvas');
+const ctx           = canvas.getContext('2d');
+
+let particles = [];
+let animFrame = null;
+
+function resizeCanvas() {
+  canvas.width  = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+
+function spawnParticles() {
+  resizeCanvas();
+  particles = [];
+  const colors = [
+    'rgba(180,210,255,',
+    'rgba(255,200,230,',
+    'rgba(200,240,200,',
+    'rgba(255,230,150,',
+    'rgba(220,180,255,',
+  ];
+  for (let i = 0; i < 120; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 2 + Math.random() * 5;
+    particles.push({
+      x: canvas.width  * (0.3 + Math.random() * 0.4),
+      y: canvas.height * (0.3 + Math.random() * 0.25),
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed - 2,
+      alpha: 1,
+      size: 2 + Math.random() * 3,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      decay: 0.012 + Math.random() * 0.01,
+    });
+  }
+}
+
+function animateParticles() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  particles.forEach(p => {
+    p.x  += p.vx;
+    p.y  += p.vy;
+    p.vy += 0.08; // gravity
+    p.alpha -= p.decay;
+    if (p.alpha <= 0) return;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+    ctx.fillStyle = p.color + p.alpha.toFixed(2) + ')';
+    ctx.fill();
+  });
+  particles = particles.filter(p => p.alpha > 0);
+  if (particles.length > 0) {
+    animFrame = requestAnimationFrame(animateParticles);
+  }
+  // Respawn burst every ~1.5s for 6s
+}
+
+let burstCount = 0;
+function fireworkShow() {
+  spawnParticles();
+  animateParticles();
+  burstCount = 0;
+  const burstInterval = setInterval(() => {
+    burstCount++;
+    spawnParticles();
+    if (burstCount >= 4) clearInterval(burstInterval);
+  }, 1400);
+}
+
+function showCompletion() {
+  completionEl.classList.add('show');
+  fireworkShow();
+}
+
+function hideCompletion() {
+  completionEl.classList.remove('show');
+  cancelAnimationFrame(animFrame);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  particles = [];
+}
+
+btnRestart.addEventListener('click', () => {
+  hideCompletion();
+  totalTick = 0;
+  start();
+});
+
+window.addEventListener('resize', resizeCanvas);
+
+btnToggle.addEventListener('click', () => {
+  if (!running && totalTick === 0) start();
+  else if (running) pause();
+  else resume();
+});
+
+
+</script>
+</body>
+</html>
