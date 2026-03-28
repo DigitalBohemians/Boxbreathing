@@ -550,7 +550,7 @@ function tick_fn() {
   innerCircle.setAttribute('r', r.toFixed(1));
 
   // Phase countdown
-  countdown.textContent = Math.ceil(dur - tick / 10);
+  countdown.textContent = Math.floor(tick / 10) + 1;
 
   // Gesamttimer jede Sekunde
   if (tick % 10 === 0) {
